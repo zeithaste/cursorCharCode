@@ -48,7 +48,7 @@ class CharCodeDisplay {
         if( zeroesToAdd > 0 ) {
             hexCode = '0'.repeat( zeroesToAdd ) + hexCode;
         }
-        console.log( `Text: ${cursorText}, number: ${charAsNumber}, hex=${hexCode}` );
+        //console.log( `Text: ${cursorText}, number: ${charAsNumber}, hex=${hexCode}` );
 
         this._statusBarItem.text = `$(telescope) U+${hexCode}`;
         this._statusBarItem.show();
