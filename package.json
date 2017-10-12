@@ -1,8 +1,8 @@
 {
-    "name": "cursorCharCode",
+    "name": "Unicode code point of current character",
     "displayName": "cursorCharCode",
-    "description": "Shows the Unicode value of character under cursor in the status bar.",
-    "version": "0.0.1",
+    "description": "Shows the Unicode code point of character under cursor in the status bar.",
+    "version": "0.0.2",
     "publisher": "zeithaste",
     "engines": {
         "vscode": "^1.17.0"
@@ -13,6 +13,10 @@
     "galleryBanner": {
         "color": "#33A4C4",
         "theme": "dark"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/zeithaste/cursorCharCode.git"
     },
     "activationEvents": [
         "*"
