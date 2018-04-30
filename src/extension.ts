@@ -29,7 +29,8 @@ class CharCodeDisplay {
         }
 
         let cursorPos = editor.selection.active;
-        let cursorTextRange = new Range(cursorPos, cursorPos.translate(0, 1));
+        // taking 2 chars instead of one allows to handle surrogate pairs correctly
+        let cursorTextRange = new Range(cursorPos, cursorPos.translate(0, 2));
         let cursorText = editor.document.getText( cursorTextRange );
         if( !cursorText ) {
             this._statusBarItem.hide();
@@ -42,10 +43,10 @@ class CharCodeDisplay {
             this._statusBarItem.hide();
             return;
         }
+
         let hexCode = charAsNumber.toString( 16 ).toUpperCase();
-        let width = charAsNumber <= 0xffff ? 4 : 8;
-        let zeroesToAdd = width - hexCode.length;
-        if( zeroesToAdd > 0 ) {
+        if( charAsNumber <= 0xffff && hexCode.length < 4 ) {
+            let zeroesToAdd = 4 - hexCode.length;
             hexCode = '0'.repeat( zeroesToAdd ) + hexCode;
         }
         //console.log( `Text: ${cursorText}, number: ${charAsNumber}, hex=${hexCode}` );
