@@ -1,6 +1,6 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the necessary extensibility types to use in your code below
-import {window, Disposable, ExtensionContext, StatusBarAlignment, StatusBarItem, TextDocument, Range} from 'vscode';
+import {window, Disposable, ExtensionContext, StatusBarAlignment, StatusBarItem, Uri, Range, commands} from 'vscode';
 
 // This method is called when your extension is activated. Activation is
 // controlled by the activation events defined in package.json.
@@ -11,10 +11,15 @@ export function activate(context: ExtensionContext) {
     // Add to a list of disposables which are disposed when this extension is deactivated.
     context.subscriptions.push(controller);
     context.subscriptions.push(charCodeDisplay);
+
+    commands.registerCommand('cursorCharCode.openUnicodeInfo', () => {
+        commands.executeCommand('vscode.open', Uri.parse(`https://unicode-table.com/en/${charCodeDisplay._hexCode}`));
+    });
 }
 
 class CharCodeDisplay {
     private _statusBarItem: StatusBarItem;
+    public _hexCode: String;
 
     public updateCharacterCode() {
         if( !this._statusBarItem ) {
@@ -52,6 +57,8 @@ class CharCodeDisplay {
         //console.log( `Text: ${cursorText}, number: ${charAsNumber}, hex=${hexCode}` );
 
         this._statusBarItem.text = `$(telescope) U+${hexCode}`;
+        this._hexCode = `${hexCode}`;
+        this._statusBarItem.command = 'cursorCharCode.openUnicodeInfo';
         this._statusBarItem.show();
     }
 
