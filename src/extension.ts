@@ -1,6 +1,6 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the necessary extensibility types to use in your code below
-import {window, Disposable, ExtensionContext, StatusBarAlignment, StatusBarItem, Uri, Range, commands} from 'vscode';
+import {window, Disposable, ExtensionContext, StatusBarAlignment, StatusBarItem, Uri, Range, commands, TextEditor} from 'vscode';
 
 // This method is called when your extension is activated. Activation is
 // controlled by the activation events defined in package.json.
@@ -15,19 +15,72 @@ export function activate(context: ExtensionContext) {
     commands.registerCommand('cursorCharCode.openUnicodeInfo', () => {
         commands.executeCommand('vscode.open', Uri.parse(`https://unicode-table.com/en/${charCodeDisplay._hexCode}`));
     });
+
+    commands.registerTextEditorCommand('cursorCharCode.convertToXX', (editor, edit) => {
+        charCodeDisplay.updateCharacterCode(editor);
+        // will replace an invalid string with utf8 for each character
+        var utf8 = unescape(encodeURIComponent(charCodeDisplay.character));
+        var replacement = "";
+        for( var i = 0; i < utf8.length; i++ )
+            replacement += "\\x" + pad0(utf8.charCodeAt(i).toString(16), 2);
+        edit.replace(charCodeDisplay.charRange, replacement);
+    });
+
+    commands.registerTextEditorCommand('cursorCharCode.convertToXXXX', (editor, edit) => {
+        charCodeDisplay.updateCharacterCode(editor);
+        // js is utf16
+        var utf16 = charCodeDisplay.character;
+        var replacement = "";
+        for( var i = 0; i < utf16.length; i++ )
+            replacement += "\\u" + pad0(utf16.charCodeAt(i).toString(16), 4);
+        edit.replace(charCodeDisplay.charRange, replacement);
+    });
+
+    commands.registerTextEditorCommand('cursorCharCode.convertToXXXXXXXX', (editor, edit) => {
+        charCodeDisplay.updateCharacterCode(editor);
+        // utf32 is just the code point
+        var replacement = "\\U" + pad0(charCodeDisplay.character.codePointAt(0).toString(16), 8);
+        edit.replace(charCodeDisplay.charRange, replacement);
+    });
+}
+
+function pad0(s: string, length: number) {
+    while (s.length < length)
+        s = '0' + s;
+    return s;
 }
 
 class CharCodeDisplay {
     private _statusBarItem: StatusBarItem;
-    public _hexCode: String;
+    private _charRange: Range;
+    private _character: string;
+    public _hexCode: string;
 
-    public updateCharacterCode() {
+    /**
+     * Returns the range of the character in the active editor.
+     */
+    public get charRange() { return this._charRange; }
+
+    /**
+     * Returns the character in question.
+     */
+    public get character() { return this._character; }
+
+    /**
+     * Returns an at least 4 character hex code.
+     */
+    public get hexCode() { return this._hexCode; }
+
+    public updateCharacterCode(editor?: TextEditor) {
         if( !this._statusBarItem ) {
             this._statusBarItem = window.createStatusBarItem(StatusBarAlignment.Left);
         }
 
         // Get the current text editor
-        let editor = window.activeTextEditor;
+        if( !editor ) {
+            editor = window.activeTextEditor;
+        }
+
         if( !editor || !editor.selection || !editor.document ) {
             this._statusBarItem.hide();
             return;
@@ -44,6 +97,15 @@ class CharCodeDisplay {
 
         // Update the status bar
         let charAsNumber = cursorText.codePointAt( 0 );
+        this._character = String.fromCodePoint(charAsNumber);
+
+        // exploit that length is number of utf16 surrogates
+        if( this._character.length == 2 ) {
+            this._charRange = cursorTextRange;
+        } else {
+            this._charRange = new Range(cursorPos, cursorPos.translate(0, 1));
+        }
+
         if( !charAsNumber ) {
             this._statusBarItem.hide();
             return;
