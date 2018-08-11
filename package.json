@@ -44,5 +44,24 @@
         "vscode": "^1.1.5",
         "@types/node": "^7.0.43",
         "@types/mocha": "^2.2.42"
+    },
+    "contributes": {
+        "commands": [
+            {
+                "category": "CursorCharCode",
+                "command": "cursorCharCode.convertToXX",
+                "title": "Replace character to \\xFF form"
+            },
+            {
+                "category": "CursorCharCode",
+                "command": "cursorCharCode.convertToXXXX",
+                "title": "Replace character to \\uFFFF form"
+            },
+            {
+                "category": "CursorCharCode",
+                "command": "cursorCharCode.convertToXXXXXXXX",
+                "title": "Replace character to \\UFFFFFFFF form"
+            }
+        ]
     }
 }
