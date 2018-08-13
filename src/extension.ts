@@ -13,7 +13,8 @@ export function activate(context: ExtensionContext) {
     context.subscriptions.push(charCodeDisplay);
 
     commands.registerCommand('cursorCharCode.openUnicodeInfo', () => {
-        commands.executeCommand('vscode.open', Uri.parse(`https://unicode-table.com/en/${charCodeDisplay._hexCode}`));
+        commands.executeCommand('vscode.open',
+            Uri.parse('https://unicode-table.com/en/' + charCodeDisplay.hexCode));
     });
 
     commands.registerTextEditorCommand('cursorCharCode.convertToXX', (editor, edit) => {
@@ -39,22 +40,20 @@ export function activate(context: ExtensionContext) {
     commands.registerTextEditorCommand('cursorCharCode.convertToXXXXXXXX', (editor, edit) => {
         charCodeDisplay.updateCharacterCode(editor);
         // utf32 is just the code point
-        var replacement = "\\U" + pad0(charCodeDisplay.character.codePointAt(0).toString(16), 8);
+        var replacement = "\\U" + pad0(charCodeDisplay.hexCode, 8);
         edit.replace(charCodeDisplay.charRange, replacement);
     });
 }
 
 function pad0(s: string, length: number) {
-    while (s.length < length)
-        s = '0' + s;
-    return s;
+    return s.length >= length ? s : '0'.repeat(length - s.length) + s;
 }
 
 class CharCodeDisplay {
     private _statusBarItem: StatusBarItem;
     private _charRange: Range;
     private _character: string;
-    public _hexCode: string;
+    private _hexCode: string;
 
     /**
      * Returns the range of the character in the active editor.
@@ -72,16 +71,16 @@ class CharCodeDisplay {
     public get hexCode() { return this._hexCode; }
 
     public updateCharacterCode(editor?: TextEditor) {
-        if( !this._statusBarItem ) {
+        if(!this._statusBarItem) {
             this._statusBarItem = window.createStatusBarItem(StatusBarAlignment.Left);
         }
 
         // Get the current text editor
-        if( !editor ) {
+        if(!editor) {
             editor = window.activeTextEditor;
         }
 
-        if( !editor || !editor.selection || !editor.document ) {
+        if(!editor || !editor.selection || !editor.document) {
             this._statusBarItem.hide();
             return;
         }
@@ -89,33 +88,25 @@ class CharCodeDisplay {
         let cursorPos = editor.selection.active;
         // taking 2 chars instead of one allows to handle surrogate pairs correctly
         let cursorTextRange = new Range(cursorPos, cursorPos.translate(0, 2));
-        let cursorText = editor.document.getText( cursorTextRange );
-        if( !cursorText ) {
+        let cursorText = editor.document.getText(cursorTextRange);
+        if(!cursorText) {
             this._statusBarItem.hide();
             return;
         }
 
         // Update the status bar
-        let charAsNumber = cursorText.codePointAt( 0 );
+        let charAsNumber = cursorText.codePointAt(0);
         this._character = String.fromCodePoint(charAsNumber);
+        this._charRange = new Range(cursorPos, cursorPos.translate(0, this._character.length));
 
-        // exploit that length is number of utf16 surrogates
-        if( this._character.length == 2 ) {
-            this._charRange = cursorTextRange;
-        } else {
-            this._charRange = new Range(cursorPos, cursorPos.translate(0, 1));
-        }
-
-        if( !charAsNumber ) {
+        if(!charAsNumber) {
             this._statusBarItem.hide();
             return;
         }
 
-        let hexCode = charAsNumber.toString( 16 ).toUpperCase();
-        if( charAsNumber <= 0xffff && hexCode.length < 4 ) {
-            let zeroesToAdd = 4 - hexCode.length;
-            hexCode = '0'.repeat( zeroesToAdd ) + hexCode;
-        }
+        let hexCode = charAsNumber.toString(16).toUpperCase();
+        if(charAsNumber <= 0xffff && hexCode.length < 4)
+            hexCode = pad0(hexCode, 4);
         //console.log( `Text: ${cursorText}, number: ${charAsNumber}, hex=${hexCode}` );
 
         this._statusBarItem.text = `$(telescope) U+${hexCode}`;
