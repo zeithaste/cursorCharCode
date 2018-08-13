@@ -1,7 +1,7 @@
 # Change Log
 All notable changes to the "cursorCharCode" extension will be documented in this file.
 
-### v0.0.8 (11/08/2018)
+### v0.1.1 (13/08/2018)
 - Added commands to convert to \xFF \uFFFF \UFFFFFFFF forms    /@WebFreak001/
 
 ### v0.0.7 (11/08/2018)
