@@ -12,12 +12,14 @@ export function activate(context: ExtensionContext) {
     context.subscriptions.push(controller);
     context.subscriptions.push(charCodeDisplay);
 
-    commands.registerCommand('cursorCharCode.openUnicodeInfo', () => {
-        commands.executeCommand('vscode.open',
-            Uri.parse('https://unicode-table.com/en/' + charCodeDisplay.hexCode));
-    });
+    context.subscriptions.push(
+        commands.registerCommand('cursorCharCode.openUnicodeInfo', async () => {
+            commands.executeCommand('vscode.open',
+                Uri.parse('https://unicode-table.com/en/' + charCodeDisplay.hexCode));
+        }));
 
-    commands.registerTextEditorCommand('cursorCharCode.convertToXX', (editor, edit) => {
+    context.subscriptions.push(
+        commands.registerTextEditorCommand('cursorCharCode.convertToXX', async (editor, edit) => {
         charCodeDisplay.updateCharacterCode(editor);
         // will replace an invalid string with utf8 for each character
         var utf8 = unescape(encodeURIComponent(charCodeDisplay.character));
@@ -25,24 +27,26 @@ export function activate(context: ExtensionContext) {
         for( var i = 0; i < utf8.length; i++ )
             replacement += "\\x" + pad0(utf8.charCodeAt(i).toString(16), 2);
         edit.replace(charCodeDisplay.charRange, replacement);
-    });
+    }));
 
-    commands.registerTextEditorCommand('cursorCharCode.convertToXXXX', (editor, edit) => {
-        charCodeDisplay.updateCharacterCode(editor);
-        // js is utf16
-        var utf16 = charCodeDisplay.character;
-        var replacement = "";
-        for( var i = 0; i < utf16.length; i++ )
-            replacement += "\\u" + pad0(utf16.charCodeAt(i).toString(16), 4);
-        edit.replace(charCodeDisplay.charRange, replacement);
-    });
+    context.subscriptions.push(
+        commands.registerTextEditorCommand('cursorCharCode.convertToXXXX', async (editor, edit) => {
+            charCodeDisplay.updateCharacterCode(editor);
+            // js is utf16
+            var utf16 = charCodeDisplay.character;
+            var replacement = "";
+            for( var i = 0; i < utf16.length; i++ )
+                replacement += "\\u" + pad0(utf16.charCodeAt(i).toString(16), 4);
+            edit.replace(charCodeDisplay.charRange, replacement);
+    }));
 
-    commands.registerTextEditorCommand('cursorCharCode.convertToXXXXXXXX', (editor, edit) => {
-        charCodeDisplay.updateCharacterCode(editor);
-        // utf32 is just the code point
-        var replacement = "\\U" + pad0(charCodeDisplay.hexCode, 8);
-        edit.replace(charCodeDisplay.charRange, replacement);
-    });
+    context.subscriptions.push(
+        commands.registerTextEditorCommand('cursorCharCode.convertToXXXXXXXX', async (editor, edit) => {
+            charCodeDisplay.updateCharacterCode(editor);
+            // utf32 is just the code point
+            var replacement = "\\U" + pad0(charCodeDisplay.hexCode, 8);
+            edit.replace(charCodeDisplay.charRange, replacement);
+    }));
 }
 
 function pad0(s: string, length: number) {
