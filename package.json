@@ -2,10 +2,10 @@
     "name": "cursorCharCode",
     "displayName": "Unicode code point of current character",
     "description": "Shows the Unicode code point of character under cursor in the status bar.",
-    "version": "0.1.1",
+    "version": "0.2.0",
     "publisher": "zeithaste",
     "engines": {
-        "vscode": "^1.17.0"
+        "vscode": "^1.31.0"
     },
     "categories": [
         "Other"
@@ -40,10 +40,10 @@
         "test": "npm run compile && node ./node_modules/vscode/bin/test"
     },
     "devDependencies": {
-        "typescript": "^2.5.3",
-        "vscode": "^1.1.5",
+        "@types/mocha": "^2.2.42",
         "@types/node": "^7.0.43",
-        "@types/mocha": "^2.2.42"
+        "typescript": "^3.2.4",
+        "vscode": "^1.1.37"
     },
     "contributes": {
         "commands": [
@@ -61,6 +61,16 @@
                 "category": "CursorCharCode",
                 "command": "cursorCharCode.convertToXXXXXXXX",
                 "title": "Replace character to \\UFFFFFFFF form"
+            },
+            {
+                "category": "CursorCharCode",
+                "command": "cursorCharCode.hexToClipboard",
+                "title": "Copy current character code (hexadecimal) to the clipboard"
+            },
+            {
+                "category": "CursorCharCode",
+                "command": "cursorCharCode.decToClipboard",
+                "title": "Copy current character code (decimal) to the clipboard"
             }
         ]
     }

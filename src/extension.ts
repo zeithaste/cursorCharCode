@@ -1,6 +1,6 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the necessary extensibility types to use in your code below
-import {window, Disposable, ExtensionContext, StatusBarAlignment, StatusBarItem, Uri, Range, commands, TextEditor} from 'vscode';
+import {env, window, Disposable, ExtensionContext, StatusBarAlignment, StatusBarItem, Uri, Range, commands, TextEditor} from 'vscode';
 
 // This method is called when your extension is activated. Activation is
 // controlled by the activation events defined in package.json.
@@ -47,6 +47,18 @@ export function activate(context: ExtensionContext) {
             var replacement = "\\U" + pad0(charCodeDisplay.hexCode, 8);
             edit.replace(charCodeDisplay.charRange, replacement);
     }));
+
+    context.subscriptions.push(
+        commands.registerTextEditorCommand('cursorCharCode.hexToClipboard', async (editor, edit) => {
+            charCodeDisplay.updateCharacterCode(editor);
+            env.clipboard.writeText(charCodeDisplay.value.toString(16));
+    }));
+
+    context.subscriptions.push(
+        commands.registerTextEditorCommand('cursorCharCode.decToClipboard', async (editor, edit) => {
+            charCodeDisplay.updateCharacterCode(editor);
+            env.clipboard.writeText(charCodeDisplay.value.toString(10));
+    }));
 }
 
 function pad0(s: string, length: number) {
@@ -56,6 +68,7 @@ function pad0(s: string, length: number) {
 class CharCodeDisplay {
     private _statusBarItem: StatusBarItem;
     private _charRange: Range;
+    private _value: number;
     private _character: string;
     private _hexCode: string;
 
@@ -73,6 +86,11 @@ class CharCodeDisplay {
      * Returns an at least 4 character hex code.
      */
     public get hexCode() { return this._hexCode; }
+
+    /**
+     * Returns character code as a number
+     */
+    public get value() { return this._value; }
 
     public updateCharacterCode(editor?: TextEditor) {
         if(!this._statusBarItem) {
@@ -99,19 +117,19 @@ class CharCodeDisplay {
         }
 
         // Update the status bar
-        let charAsNumber = cursorText.codePointAt(0);
-        this._character = String.fromCodePoint(charAsNumber);
+        this._value = cursorText.codePointAt(0);
+        this._character = String.fromCodePoint(this._value);
         this._charRange = new Range(cursorPos, cursorPos.translate(0, this._character.length));
 
-        if(!charAsNumber) {
+        if(!this._value) {
             this._statusBarItem.hide();
             return;
         }
 
-        let hexCode = charAsNumber.toString(16).toUpperCase();
-        if(charAsNumber <= 0xffff && hexCode.length < 4)
+        let hexCode = this._value.toString(16).toUpperCase();
+        if(this._value <= 0xffff && hexCode.length < 4)
             hexCode = pad0(hexCode, 4);
-        //console.log( `Text: ${cursorText}, number: ${charAsNumber}, hex=${hexCode}` );
+        console.log( `Text: ${cursorText}, number: ${this._value}, hex=${hexCode}` );
 
         this._statusBarItem.text = `$(telescope) U+${hexCode}`;
         this._hexCode = `${hexCode}`;
