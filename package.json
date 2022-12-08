@@ -31,7 +31,7 @@
         "email": "zeithaste@gmail.com"
     },
     "activationEvents": [
-        "*"
+        "onStartupFinished"
     ],
     "main": "./out/extension",
     "scripts": {
