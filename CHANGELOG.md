@@ -1,6 +1,9 @@
 # Change Log
 All notable changes to the "cursorCharCode" extension will be documented in this file.
 
+### v0.2.1 (08/12/2022)
+- character name tooltip
+
 ### v0.2
 - New commands (copy hex to clipboard, copy dec to clipboard)
 

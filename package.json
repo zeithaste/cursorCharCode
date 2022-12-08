@@ -25,13 +25,12 @@
         "url": "https://github.com/zeithaste/cursorCharCode.git"
     },
     "pricing": "Free",
-    "license": "SEE LICENSE IN LICENSE.txt",
     "bugs": {
         "url": "https://github.com/zeithaste/cursorCharCode/issues",
         "email": "zeithaste@gmail.com"
     },
     "activationEvents": [
-        "*"
+        "onStartupFinished"
     ],
     "main": "./out/extension",
     "scripts": {
