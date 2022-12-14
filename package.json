@@ -2,7 +2,7 @@
     "name": "cursorCharCode",
     "displayName": "Unicode code point of current character",
     "description": "Shows the Unicode code point of character under cursor in the status bar.",
-    "version": "0.2.1",
+    "version": "0.2.2",
     "publisher": "zeithaste",
     "engines": {
         "vscode": "^1.34.0"
