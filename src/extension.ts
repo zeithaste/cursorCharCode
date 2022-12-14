@@ -212,3 +212,4 @@ class CharCodeController {
         this._display.updateCharacterCode();
     }
 }
+
