@@ -134,7 +134,7 @@ class CharCodeDisplay {
 
     public updateCharacterCode(editor?: TextEditor) {
         if (!this._statusBarItem) {
-            this._statusBarItem = window.createStatusBarItem(StatusBarAlignment.Left);
+            this._statusBarItem = window.createStatusBarItem(StatusBarAlignment.Right, 101);
         }
 
         // Get the current text editor
@@ -212,3 +212,4 @@ class CharCodeController {
         this._display.updateCharacterCode();
     }
 }
+

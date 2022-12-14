@@ -1,6 +1,9 @@
 # Change Log
 All notable changes to the "cursorCharCode" extension will be documented in this file.
 
+### v0.2.2 (14/12/2022)
+- control is now aligned to the right of the status bar
+
 ### v0.2.1 (08/12/2022)
 - character name tooltip
 
