@@ -1,5 +1,5 @@
 // The module 'vscode' contains the VS Code extensibility API
-import { env, window, Disposable, ExtensionContext, StatusBarAlignment, StatusBarItem, Uri, Range, commands, TextEditor } from 'vscode';
+import { env, window, Disposable, ExtensionContext, StatusBarAlignment, StatusBarItem, Uri, Range, commands, TextEditor, workspace } from 'vscode';
 
 // This method is called when the extension is activated. Activation is
 // controlled by the activation events defined in package.json.
@@ -199,6 +199,7 @@ class CharCodeController {
         let subscriptions: Disposable[] = [];
         window.onDidChangeTextEditorSelection(this._onEvent, this, subscriptions);
         window.onDidChangeActiveTextEditor(this._onEvent, this, subscriptions);
+        workspace.onDidChangeTextDocument(this._onEvent, this, subscriptions);
 
         this._display.updateCharacterCode();
         this._disposable = Disposable.from(...subscriptions);
