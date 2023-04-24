@@ -1,7 +1,7 @@
 # Change Log
 All notable changes to the "cursorCharCode" extension will be documented in this file.
 
-### v0.2.3 (14/12/2022)
+### v0.2.3 (24/04/2023)
 - listen to document change events
 
 ### v0.2.2 (14/12/2022)
