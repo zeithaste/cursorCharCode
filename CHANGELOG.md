@@ -1,6 +1,9 @@
 # Change Log
 All notable changes to the "cursorCharCode" extension will be documented in this file.
 
+### v0.2.4 (30/05/2023)
+- the extension now has an icon
+
 ### v0.2.3 (24/04/2023)
 - listen to document change events
 
