@@ -14,7 +14,7 @@ export function activate(context: ExtensionContext) {
     context.subscriptions.push(
         commands.registerCommand('cursorCharCode.openUnicodeInfo', async () => {
             commands.executeCommand('vscode.open',
-                Uri.parse('https://unicode-table.com/en/' + charCodeDisplay.hexCode));
+                Uri.parse('https://www.compart.com/en/unicode/U+' + charCodeDisplay.hexCode));
         }));
 
     context.subscriptions.push(
