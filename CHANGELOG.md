@@ -1,6 +1,9 @@
 # Change Log
 All notable changes to the "cursorCharCode" extension will be documented in this file.
 
+### v0.2.5 (08/05/2024)
+- change Unicode symbol description link to point to www.compart.com/en/unicode/U+xxxx
+
 ### v0.2.4 (30/05/2023)
 - the extension now has an icon
 
