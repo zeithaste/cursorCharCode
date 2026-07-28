@@ -1,0 +1,5 @@
+# Keep repository text files deterministic across platforms.
+* text=auto eol=lf
+
+# Preserve binary assets byte-for-byte.
+*.png binary
