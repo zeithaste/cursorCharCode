@@ -1,7 +1,7 @@
 # Change Log
 All notable changes to the "cursorCharCode" extension will be documented in this file.
 
-### ### v0.3 (19/07/2026)
+### v0.3.0 (29/07/2026)
 - support U+0000 and other embedded control characters
 - show all code points in extended grapheme clusters (incl. combining marks and emoji sequences)
 - make copy and replacement commands operate on the complete grapheme
