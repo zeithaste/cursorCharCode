@@ -1,11 +1,22 @@
 // The module 'vscode' contains the VS Code extensibility API
-import { env, window, Disposable, ExtensionContext, StatusBarAlignment, StatusBarItem, Uri, Range, commands, TextEditor, workspace } from 'vscode';
+import { env, window, Disposable, ExtensionContext, StatusBarAlignment, StatusBarItem, Uri, Range, commands, TextEditor, workspace, QuickPickItem } from 'vscode';
+import {
+    findGraphemeAt,
+    formatCodePoint,
+    formatDecimalClipboard,
+    formatHexClipboard,
+    formatStatusCodePoints,
+    formatUtf8Escapes,
+    formatUtf16Escapes,
+    formatUtf32Escapes,
+    GraphemeInfo,
+} from './grapheme';
 
 // This method is called when the extension is activated. Activation is
 // controlled by the activation events defined in package.json.
 export function activate(context: ExtensionContext) {
-    let charCodeDisplay = new CharCodeDisplay();
-    let controller = new CharCodeController(charCodeDisplay);
+    const charCodeDisplay = new CharCodeDisplay();
+    const controller = new CharCodeController(charCodeDisplay);
 
     // Add to a list of disposables which are disposed when this extension is deactivated.
     context.subscriptions.push(controller);
@@ -13,91 +24,112 @@ export function activate(context: ExtensionContext) {
 
     context.subscriptions.push(
         commands.registerCommand('cursorCharCode.openUnicodeInfo', async () => {
-            commands.executeCommand('vscode.open',
-                Uri.parse('https://www.compart.com/en/unicode/U+' + charCodeDisplay.hexCode));
+            const current = charCodeDisplay.current;
+            if (!current) {
+                return;
+            }
+
+            let codePoint = current.grapheme.codePoints[0];
+            if (current.grapheme.codePoints.length > 1) {
+                const choices: UnicodeInfoPick[] = current.grapheme.codePoints.map(value => ({
+                    label: `U+${formatCodePoint(value)}`,
+                    description: charCodeDisplay.getCharName(value),
+                    codePoint: value,
+                }));
+                const selected = await window.showQuickPick(choices, {
+                    placeHolder: 'Choose a code point to open',
+                });
+                if (!selected) {
+                    return;
+                }
+                codePoint = selected.codePoint;
+            }
+
+            await commands.executeCommand(
+                'vscode.open',
+                Uri.parse(`https://www.compart.com/en/unicode/U+${formatCodePoint(codePoint)}`),
+            );
         }));
 
     context.subscriptions.push(
         commands.registerTextEditorCommand('cursorCharCode.convertToXX', async (editor, edit) => {
-            charCodeDisplay.updateCharacterCode(editor);
-            if (charCodeDisplay.character === undefined || !charCodeDisplay.charRange)
-                return;
-
-            // will replace an invalid string with utf8 for each character
-            var utf8encoded = require('utf8').encode(charCodeDisplay.character);
-            var replacement = "";
-            for (var i = 0; i < utf8encoded.length; i++)
-                replacement += "\\x" + pad0(utf8encoded.charCodeAt(i).toString(16), 2);
-            edit.replace(charCodeDisplay.charRange, replacement);
+            const current = charCodeDisplay.updateCharacterCode(editor);
+            if (current) {
+                edit.replace(current.range, formatUtf8Escapes(current.grapheme.text));
+            }
         }));
 
     context.subscriptions.push(
         commands.registerTextEditorCommand('cursorCharCode.convertToXXXX', async (editor, edit) => {
-            charCodeDisplay.updateCharacterCode(editor);
-            if (charCodeDisplay.character === undefined || !charCodeDisplay.charRange)
-                return;
-
-            // js is utf16
-            var utf16 = charCodeDisplay.character;
-            var replacement = "";
-            for (var i = 0; i < utf16.length; i++)
-                replacement += "\\u" + pad0(utf16.charCodeAt(i).toString(16), 4);
-            edit.replace(charCodeDisplay.charRange, replacement);
+            const current = charCodeDisplay.updateCharacterCode(editor);
+            if (current) {
+                edit.replace(current.range, formatUtf16Escapes(current.grapheme.text));
+            }
         }));
 
     context.subscriptions.push(
         commands.registerTextEditorCommand('cursorCharCode.convertToXXXXXXXX', async (editor, edit) => {
-            charCodeDisplay.updateCharacterCode(editor);
-            if (!charCodeDisplay.hexCode || !charCodeDisplay.charRange)
-                return;
-
-            // utf32 is just the code point
-            var replacement = "\\U" + pad0(charCodeDisplay.hexCode, 8);
-            edit.replace(charCodeDisplay.charRange, replacement);
+            const current = charCodeDisplay.updateCharacterCode(editor);
+            if (current) {
+                edit.replace(current.range, formatUtf32Escapes(current.grapheme.codePoints));
+            }
         }));
 
     context.subscriptions.push(
-        commands.registerTextEditorCommand('cursorCharCode.hexToClipboard', async (editor, edit) => {
-            charCodeDisplay.updateCharacterCode(editor);
-            if (charCodeDisplay.value)
-                env.clipboard.writeText(charCodeDisplay.value.toString(16));
+        commands.registerTextEditorCommand('cursorCharCode.hexToClipboard', async editor => {
+            const current = charCodeDisplay.updateCharacterCode(editor);
+            if (current) {
+                await env.clipboard.writeText(formatHexClipboard(current.grapheme.codePoints));
+            }
         }));
 
     context.subscriptions.push(
-        commands.registerTextEditorCommand('cursorCharCode.decToClipboard', async (editor, edit) => {
-            charCodeDisplay.updateCharacterCode(editor);
-            if (charCodeDisplay.value)
-                env.clipboard.writeText(charCodeDisplay.value.toString(10));
+        commands.registerTextEditorCommand('cursorCharCode.decToClipboard', async editor => {
+            const current = charCodeDisplay.updateCharacterCode(editor);
+            if (current) {
+                await env.clipboard.writeText(formatDecimalClipboard(current.grapheme.codePoints));
+            }
         }));
 }
 
-function pad0(s: string, length: number) {
-    return s.length >= length ? s : '0'.repeat(length - s.length) + s;
+interface UnicodeInfoPick extends QuickPickItem {
+    codePoint: number;
+}
+
+interface DisplayedGrapheme {
+    grapheme: GraphemeInfo;
+    range: Range;
 }
 
 class UnicodeCharNames {
     private lookupTable = new Map<number, string>();
-    private processedCategories = new Set();
+    private processedCategories = new Set<string>();
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     private uniprops = require('unicode-properties');
 
     public getCharName(codepoint: number) {
-        let cached = this.lookupTable.get(codepoint);
+        const cached = this.lookupTable.get(codepoint);
         if (cached !== undefined) {
             return cached;
         }
 
-        let category = this.uniprops.getCategory(codepoint);
-        if (!(category in this.processedCategories)) {
-            let categoryPath = 'unicode/category/' + category;
-            let categoryData = require(categoryPath);
+        const category = this.uniprops.getCategory(codepoint);
+        if (!this.processedCategories.has(category)) {
+            const categoryPath = 'unicode/category/' + category;
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            const categoryData = require(categoryPath);
             if (categoryData !== undefined) {
-                for (let cp in categoryData) {
-                    this.lookupTable.set(Number(cp), categoryData[cp].name);
+                for (const cp in categoryData) {
+                    const entry = categoryData[cp];
+                    const name = entry.name === '<control>' && entry.unicode_name
+                        ? entry.unicode_name
+                        : entry.name;
+                    this.lookupTable.set(Number(cp), name);
                 }
             }
             this.processedCategories.add(category);
             // unicode data is no longer needed
-            delete require.cache[require.resolve(categoryPath)]
+            delete require.cache[require.resolve(categoryPath)];
         }
 
         return this.lookupTable.get(codepoint);
@@ -106,33 +138,16 @@ class UnicodeCharNames {
 
 class CharCodeDisplay {
     private _statusBarItem: StatusBarItem | undefined;
-    private _charRange: Range | undefined;
-    private _value: number | undefined;
-    private _character: string | undefined;
-    private _hexCode: string | undefined;
+    private _current: DisplayedGrapheme | undefined;
     private _charNames = new UnicodeCharNames();
 
-    /**
-     * Returns the range of the character in the active editor.
-     */
-    public get charRange() { return this._charRange; }
+    public get current() { return this._current; }
 
-    /**
-     * Returns the character in question.
-     */
-    public get character() { return this._character; }
+    public getCharName(codePoint: number) {
+        return this._charNames.getCharName(codePoint);
+    }
 
-    /**
-     * Returns an at least 4 character hex code.
-     */
-    public get hexCode() { return this._hexCode; }
-
-    /**
-     * Returns character code as a number
-     */
-    public get value() { return this._value; }
-
-    public updateCharacterCode(editor?: TextEditor) {
+    public updateCharacterCode(editor?: TextEditor): DisplayedGrapheme | undefined {
         if (!this._statusBarItem) {
             this._statusBarItem = window.createStatusBarItem(StatusBarAlignment.Right, 101);
         }
@@ -143,43 +158,40 @@ class CharCodeDisplay {
         }
 
         if (!editor || !editor.selection || !editor.document) {
-            this._statusBarItem.hide();
-            return;
+            return this.clear();
         }
 
-        let cursorPos = editor.selection.active;
-        // taking 2 chars instead of one allows to handle surrogate pairs correctly
-        let cursorTextRange = new Range(cursorPos, cursorPos.translate(0, 2));
-        let cursorText = editor.document.getText(cursorTextRange);
-        if (!cursorText) {
-            this._statusBarItem.hide();
-            return;
+        const cursorPos = editor.selection.active;
+        const lineText = editor.document.lineAt(cursorPos.line).text;
+        const grapheme = findGraphemeAt(lineText, cursorPos.character);
+        if (!grapheme) {
+            return this.clear();
         }
 
-        // Update the status bar
-        this._value = cursorText.codePointAt(0);
-        if (!this._value) {
-            this._statusBarItem.hide();
-            return;
-        }
+        const range = new Range(cursorPos.line, grapheme.start, cursorPos.line, grapheme.end);
+        this._current = { grapheme, range };
 
-        this._character = String.fromCodePoint(this._value);
-        this._charRange = new Range(cursorPos, cursorPos.translate(0, this._character.length));
-
-        let hexCode = this._value.toString(16).toUpperCase();
-        if (this._value <= 0xffff && hexCode.length < 4)
-            hexCode = pad0(hexCode, 4);
-        this._statusBarItem.text = `$(telescope) U+${hexCode}`;
-        this._hexCode = `${hexCode}`;
-        //let debug = vscode.window.createOutputChannel("cursorCharCode debug");
-        //debug.appendLine(`Text: ${cursorText}, number: ${this._value}, hex=${hexCode}`); debug.show();
-
-        let characterName = this._charNames.getCharName(this._value);
-        if (characterName !== undefined)
-            this._statusBarItem.tooltip = characterName;
+        this._statusBarItem.text = `$(telescope) ${formatStatusCodePoints(grapheme.codePoints)}`;
+        this._statusBarItem.tooltip = grapheme.codePoints
+            .map(codePoint => {
+                const code = `U+${formatCodePoint(codePoint)}`;
+                const name = this._charNames.getCharName(codePoint);
+                return name ? `${code} — ${name}` : code;
+            })
+            .join('\n');
 
         this._statusBarItem.command = 'cursorCharCode.openUnicodeInfo';
         this._statusBarItem.show();
+        return this._current;
+    }
+
+    private clear(): undefined {
+        this._current = undefined;
+        if (this._statusBarItem) {
+            this._statusBarItem.tooltip = undefined;
+            this._statusBarItem.hide();
+        }
+        return undefined;
     }
 
     dispose() {
@@ -196,7 +208,7 @@ class CharCodeController {
         this._display = display;
 
         // subscribe to selection change and editor activation events
-        let subscriptions: Disposable[] = [];
+        const subscriptions: Disposable[] = [];
         window.onDidChangeTextEditorSelection(this._onEvent, this, subscriptions);
         window.onDidChangeActiveTextEditor(this._onEvent, this, subscriptions);
         workspace.onDidChangeTextDocument(this._onEvent, this, subscriptions);
