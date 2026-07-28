@@ -56,6 +56,7 @@ export function formatDecimalClipboard(codePoints: readonly number[]): string {
 }
 
 export function formatUtf8Escapes(text: string): string {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const encoded = require('utf8').encode(text);
     let replacement = '';
     for (let index = 0; index < encoded.length; index++) {
