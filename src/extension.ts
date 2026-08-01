@@ -1,5 +1,18 @@
 // The module 'vscode' contains the VS Code extensibility API
-import { env, window, Disposable, ExtensionContext, StatusBarAlignment, StatusBarItem, Uri, Range, commands, TextEditor, workspace, QuickPickItem } from 'vscode';
+import {
+    commands,
+    Disposable,
+    env,
+    ExtensionContext,
+    QuickPickItem,
+    Range,
+    StatusBarAlignment,
+    StatusBarItem,
+    TextEditor,
+    Uri,
+    window,
+    workspace,
+} from 'vscode';
 import {
     findGraphemeAt,
     formatCodePoint,
@@ -11,6 +24,7 @@ import {
     formatUtf32Escapes,
     GraphemeInfo,
 } from './grapheme';
+import {getUnicodeName} from './unicode';
 
 // This method is called when the extension is activated. Activation is
 // controlled by the activation events defined in package.json.
@@ -52,7 +66,7 @@ export function activate(context: ExtensionContext) {
         }));
 
     context.subscriptions.push(
-        commands.registerTextEditorCommand('cursorCharCode.convertToXX', async (editor, edit) => {
+        commands.registerTextEditorCommand('cursorCharCode.convertToXX', (editor, edit) => {
             const current = charCodeDisplay.updateCharacterCode(editor);
             if (current) {
                 edit.replace(current.range, formatUtf8Escapes(current.grapheme.text));
@@ -60,7 +74,7 @@ export function activate(context: ExtensionContext) {
         }));
 
     context.subscriptions.push(
-        commands.registerTextEditorCommand('cursorCharCode.convertToXXXX', async (editor, edit) => {
+        commands.registerTextEditorCommand('cursorCharCode.convertToXXXX', (editor, edit) => {
             const current = charCodeDisplay.updateCharacterCode(editor);
             if (current) {
                 edit.replace(current.range, formatUtf16Escapes(current.grapheme.text));
@@ -68,7 +82,7 @@ export function activate(context: ExtensionContext) {
         }));
 
     context.subscriptions.push(
-        commands.registerTextEditorCommand('cursorCharCode.convertToXXXXXXXX', async (editor, edit) => {
+        commands.registerTextEditorCommand('cursorCharCode.convertToXXXXXXXX', (editor, edit) => {
             const current = charCodeDisplay.updateCharacterCode(editor);
             if (current) {
                 edit.replace(current.range, formatUtf32Escapes(current.grapheme.codePoints));
@@ -76,18 +90,18 @@ export function activate(context: ExtensionContext) {
         }));
 
     context.subscriptions.push(
-        commands.registerTextEditorCommand('cursorCharCode.hexToClipboard', async editor => {
+        commands.registerTextEditorCommand('cursorCharCode.hexToClipboard', editor => {
             const current = charCodeDisplay.updateCharacterCode(editor);
             if (current) {
-                await env.clipboard.writeText(formatHexClipboard(current.grapheme.codePoints));
+                void env.clipboard.writeText(formatHexClipboard(current.grapheme.codePoints));
             }
         }));
 
     context.subscriptions.push(
-        commands.registerTextEditorCommand('cursorCharCode.decToClipboard', async editor => {
+        commands.registerTextEditorCommand('cursorCharCode.decToClipboard', editor => {
             const current = charCodeDisplay.updateCharacterCode(editor);
             if (current) {
-                await env.clipboard.writeText(formatDecimalClipboard(current.grapheme.codePoints));
+                void env.clipboard.writeText(formatDecimalClipboard(current.grapheme.codePoints));
             }
         }));
 }
@@ -101,50 +115,14 @@ interface DisplayedGrapheme {
     range: Range;
 }
 
-class UnicodeCharNames {
-    private lookupTable = new Map<number, string>();
-    private processedCategories = new Set<string>();
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    private uniprops = require('unicode-properties');
-
-    public getCharName(codepoint: number) {
-        const cached = this.lookupTable.get(codepoint);
-        if (cached !== undefined) {
-            return cached;
-        }
-
-        const category = this.uniprops.getCategory(codepoint);
-        if (!this.processedCategories.has(category)) {
-            const categoryPath = 'unicode/category/' + category;
-            // eslint-disable-next-line @typescript-eslint/no-require-imports
-            const categoryData = require(categoryPath);
-            if (categoryData !== undefined) {
-                for (const cp in categoryData) {
-                    const entry = categoryData[cp];
-                    const name = entry.name === '<control>' && entry.unicode_name
-                        ? entry.unicode_name
-                        : entry.name;
-                    this.lookupTable.set(Number(cp), name);
-                }
-            }
-            this.processedCategories.add(category);
-            // unicode data is no longer needed
-            delete require.cache[require.resolve(categoryPath)];
-        }
-
-        return this.lookupTable.get(codepoint);
-    }
-}
-
 class CharCodeDisplay {
     private _statusBarItem: StatusBarItem | undefined;
     private _current: DisplayedGrapheme | undefined;
-    private _charNames = new UnicodeCharNames();
 
     public get current() { return this._current; }
 
     public getCharName(codePoint: number) {
-        return this._charNames.getCharName(codePoint);
+        return getUnicodeName(codePoint);
     }
 
     public updateCharacterCode(editor?: TextEditor): DisplayedGrapheme | undefined {
@@ -175,7 +153,7 @@ class CharCodeDisplay {
         this._statusBarItem.tooltip = grapheme.codePoints
             .map(codePoint => {
                 const code = `U+${formatCodePoint(codePoint)}`;
-                const name = this._charNames.getCharName(codePoint);
+                const name = getUnicodeName(codePoint);
                 return name ? `${code} — ${name}` : code;
             })
             .join('\n');
@@ -221,8 +199,7 @@ class CharCodeController {
         this._disposable.dispose();
     }
 
-    private _onEvent() {
+    private readonly _onEvent = () => {
         this._display.updateCharacterCode();
-    }
+    };
 }
-

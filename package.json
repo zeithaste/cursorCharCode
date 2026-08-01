@@ -2,10 +2,10 @@
     "name": "cursorCharCode",
     "displayName": "Unicode code point of current character",
     "description": "Shows the Unicode code point of character under cursor in the status bar.",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "publisher": "zeithaste",
     "engines": {
-        "vscode": "^1.34.0"
+        "vscode": "^1.92.0"
     },
     "categories": [
         "Other"
@@ -23,7 +23,7 @@
     ],
     "repository": {
         "type": "git",
-        "url": "https://github.com/zeithaste/cursorCharCode.git"
+        "url": "https://github.com/zeithaste/cursorCharCode"
     },
     "pricing": "Free",
     "bugs": {
@@ -33,23 +33,39 @@
     "activationEvents": [
         "onStartupFinished"
     ],
-    "main": "./out/extension",
+    "main": "./dist/extension.js",
     "scripts": {
-        "vscode:prepublish": "npm run compile",
-        "compile": "tsc -p ./",
+        "vscode:prepublish": "npm run check && npm run bundle:production",
+        "check": "npm run check-types && npm run lint",
+        "check-types": "tsc --noEmit",
+        "compile": "npm run check-types && npm run bundle",
+        "bundle": "node scripts/esbuild.mjs",
+        "bundle:production": "node scripts/esbuild.mjs --production",
+        "compile-tests": "node scripts/esbuild.mjs --tests",
+        "prepare-tests": "npm run compile && npm run compile-tests",
         "lint": "eslint \"src/**/*.ts\"",
-        "test": "npm run compile && mocha --ui tdd \"out/test/grapheme.test.js\"",
-        "watch": "tsc -watch -p ./"
+        "test": "npm run check && npm run test:unit",
+        "test:unit": "npm run compile-tests && mocha --ui tdd \"out/test/grapheme.test.js\"",
+        "test:integration": "npm run test:integration:minimum && npm run test:integration:stable",
+        "test:integration:minimum": "npm run prepare-tests && vscode-test --config .vscode-test.minimum.mjs",
+        "test:integration:stable": "npm run prepare-tests && vscode-test --config .vscode-test.mjs",
+        "vsix": "vsce package --no-dependencies",
+        "watch": "node scripts/esbuild.mjs --watch",
+        "watch:types": "tsc --noEmit --watch"
     },
     "devDependencies": {
-        "@types/node": "^18.11.11",
-        "@types/mocha": "^10.0.10",
-        "@types/vscode": "^1.34.0",
-        "@typescript-eslint/eslint-plugin": "^8.65.0",
-        "@typescript-eslint/parser": "^8.65.0",
-        "eslint": "^8.26.0",
-        "mocha": "^10.8.2",
-        "typescript": "^4.9.4"
+        "@eslint/js": "10.0.1",
+        "@types/mocha": "10.0.10",
+        "@types/node": "20.14.15",
+        "@types/vscode": "1.92.0",
+        "@vscode/test-cli": "0.0.15",
+        "@vscode/test-electron": "3.1.0",
+        "@vscode/vsce": "3.9.2",
+        "esbuild": "0.28.1",
+        "eslint": "10.8.0",
+        "mocha": "11.7.6",
+        "typescript": "6.0.3",
+        "typescript-eslint": "8.65.0"
     },
     "contributes": {
         "commands": [
@@ -81,9 +97,11 @@
         ]
     },
     "dependencies": {
-        "graphemer": "^1.4.0",
-        "unicode": "^14.0.0",
-        "unicode-properties": "^1.4.1",
-        "utf8": "^3.0.0"
+        "unicode-name": "1.1.0"
+    },
+    "allowScripts": {
+        "@vscode/vsce-sign@2.0.9": true,
+        "esbuild@0.28.1": true,
+        "keytar@7.9.0": true
     }
 }
