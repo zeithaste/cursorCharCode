@@ -1,6 +1,5 @@
-import Graphemer from 'graphemer';
-
-const graphemeSplitter = new Graphemer();
+const graphemeSegmenter = new Intl.Segmenter(undefined, {granularity: 'grapheme'});
+const utf8Encoder = new TextEncoder();
 
 export interface GraphemeInfo {
     text: string;
@@ -18,8 +17,7 @@ export function findGraphemeAt(lineText: string, cursorOffset: number): Grapheme
         return undefined;
     }
 
-    let start = 0;
-    for (const text of graphemeSplitter.iterateGraphemes(lineText)) {
+    for (const {segment: text, index: start} of graphemeSegmenter.segment(lineText)) {
         const end = start + text.length;
         if (cursorOffset >= start && cursorOffset < end) {
             return {
@@ -27,7 +25,6 @@ export function findGraphemeAt(lineText: string, cursorOffset: number): Grapheme
                 codePoints: Array.from(text, character => character.codePointAt(0)!),
             };
         }
-        start = end;
     }
 
     return undefined;
@@ -56,13 +53,7 @@ export function formatDecimalClipboard(codePoints: readonly number[]): string {
 }
 
 export function formatUtf8Escapes(text: string): string {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const encoded = require('utf8').encode(text);
-    let replacement = '';
-    for (let index = 0; index < encoded.length; index++) {
-        replacement += `\\x${pad0(encoded.charCodeAt(index).toString(16), 2)}`;
-    }
-    return replacement;
+    return Array.from(utf8Encoder.encode(text), byte => `\\x${pad0(byte.toString(16), 2)}`).join('');
 }
 
 export function formatUtf16Escapes(text: string): string {

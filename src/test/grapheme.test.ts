@@ -9,6 +9,7 @@ import {
     formatUtf16Escapes,
     formatUtf32Escapes,
 } from '../grapheme';
+import {getUnicodeName} from '../unicode';
 
 suite('Grapheme helpers', () => {
     test('finds ASCII and BMP graphemes', () => {
@@ -51,6 +52,15 @@ suite('Grapheme helpers', () => {
         assert.deepStrictEqual(findGraphemeAt('🇺🇦', 3)?.codePoints, [0x1f1fa, 0x1f1e6]);
     });
 
+    test('handles private-use characters and lone surrogates', () => {
+        assert.deepStrictEqual(findGraphemeAt('\ue000', 0), {
+            text: '\ue000', start: 0, end: 1, codePoints: [0xe000],
+        });
+        assert.deepStrictEqual(findGraphemeAt('\ud800', 0), {
+            text: '\ud800', start: 0, end: 1, codePoints: [0xd800],
+        });
+    });
+
     test('returns undefined for empty lines, invalid offsets, and end-of-line', () => {
         assert.strictEqual(findGraphemeAt('', 0), undefined);
         assert.strictEqual(findGraphemeAt('A', -1), undefined);
@@ -82,5 +92,26 @@ suite('Grapheme formatting', () => {
         assert.strictEqual(formatUtf8Escapes('e\u0301'), '\\x65\\xcc\\x81');
         assert.strictEqual(formatUtf16Escapes('😀'), '\\ud83d\\ude00');
         assert.strictEqual(formatUtf32Escapes([0x65, 0x301]), '\\U00000065\\U00000301');
+        assert.strictEqual(formatUtf8Escapes('\ud800'), '\\xef\\xbf\\xbd');
+    });
+});
+
+suite('Unicode names', () => {
+    test('returns names and readable aliases', () => {
+        assert.strictEqual(getUnicodeName(0x41), 'LATIN CAPITAL LETTER A');
+        assert.strictEqual(getUnicodeName(0), 'NULL');
+    });
+
+    test('labels private-use, reserved, noncharacter, and surrogate code points', () => {
+        assert.strictEqual(getUnicodeName(0xe000), '<private-use-E000>');
+        assert.strictEqual(getUnicodeName(0x0378), '<reserved-0378>');
+        assert.strictEqual(getUnicodeName(0x10ffff), '<noncharacter-10FFFF>');
+        assert.strictEqual(getUnicodeName(0xd800), '<surrogate-D800>');
+    });
+
+    test('returns undefined for invalid code points', () => {
+        assert.strictEqual(getUnicodeName(-1), undefined);
+        assert.strictEqual(getUnicodeName(0x110000), undefined);
+        assert.strictEqual(getUnicodeName(1.5), undefined);
     });
 });

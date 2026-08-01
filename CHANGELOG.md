@@ -1,6 +1,13 @@
 # Change Log
 All notable changes to the "cursorCharCode" extension will be documented in this file.
 
+### v0.4.0 (01/08/2026)
+- require VS Code 1.92+ & target Node 20 extension host
+- replace graphemer and UTF-8 packages with `Intl.Segmenter` and `TextEncoder`
+- update character names to Unicode 17 data
+- bundle the extension into one file, exclude dev. dependencies from VSIX
+- modernize TypeScript, ESLint, extension tests, packaging, and CI
+
 ### v0.3.0 (29/07/2026)
 - support U+0000 and other embedded control characters
 - show all code points in extended grapheme clusters (incl. combining marks and emoji sequences)

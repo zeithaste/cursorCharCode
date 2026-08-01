@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install VS Code test prerequisites
+        run: sudo apt-get update && sudo apt-get install --yes libasound2t64 libnss3 xvfb
+      - run: npm ci
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm test
+      - run: xvfb-run -a npm run test:integration:minimum
+      - run: xvfb-run -a npm run test:integration:stable
+      - run: npm run vsix
+      - name: Verify VSIX contents
+        shell: bash
+        run: |
+          vsix="cursorCharCode-0.4.0.vsix"
+          entries="$(unzip -Z1 "$vsix")"
+          file_count="$(printf '%s\n' "$entries" | wc -l)"
+          unpacked_bytes="$(unzip -l "$vsix" | tail -1 | awk '{print $1}')"
+          test "$file_count" -lt 30
+          test "$unpacked_bytes" -lt 3000000
+          if printf '%s\n' "$entries" | grep -E '/(node_modules|out|src|test)/|\.map$'; then
+            echo 'VSIX contains a forbidden development artifact.' >&2
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cursorCharCode-vsix
+          path: cursorCharCode-0.4.0.vsix
